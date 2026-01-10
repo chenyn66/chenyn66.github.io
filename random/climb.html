@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climb Scheduler</title>
+    <style>
+        /* --- Design System: Modern Minimalist (Inter-inspired) --- */
+        :root {
+            /* Palette: Slate & Emerald (Climbing/Nature vibe) */
+            --color-primary: #0f172a;       /* Slate 900 */
+            --color-secondary: #64748b;     /* Slate 500 */
+            --color-accent: #10b981;        /* Emerald 500 */
+            --color-accent-light: #d1fae5;  /* Emerald 100 */
+            --color-bg: #f8fafc;            /* Slate 50 */
+            --color-surface: #ffffff;       /* White */
+            --color-border: #e2e8f0;        /* Slate 200 */
+            
+            /* Spacing & Radius */
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            
+            /* Typography */
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-bg);
+            color: var(--color-primary);
+            margin: 0;
+            padding: 24px 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* --- Header --- */
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            margin: 0 0 4px 0;
+            font-size: 1.5rem; /* 24px */
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .date-display {
+            color: var(--color-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* --- User Input --- */
+        .user-section {
+            margin-bottom: 24px;
+        }
+
+        input#username {
+            display: block;
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid transparent;
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            font-size: 1.1rem;
+            text-align: center;
+            font-weight: 600;
+            color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        input#username::placeholder { color: #cbd5e1; font-weight: 400; }
+        input#username:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 4px var(--color-accent-light);
+        }
+
+        /* --- Tabs (Segmented Control Style) --- */
+        .tabs {
+            display: flex;
+            background: #e2e8f0; /* Slate 200 */
+            padding: 4px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            overflow-x: auto; /* Allow scroll on very small screens */
+            scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-secondary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: var(--color-primary); }
+
+        .tab-btn.active {
+            background: var(--color-surface);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* --- Schedule List --- */
+        .schedule-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .time-slot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: var(--shadow-sm);
+            border: 2px solid transparent;
+        }
+
+        .time-slot:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .time-slot:active { transform: translateY(0); }
+
+        .time-slot.joined {
+            border-color: var(--color-accent);
+            background: #f0fdf4; /* Emerald 50 */
+        }
+
+        .time-label {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--color-primary);
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .participants {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 16px;
+        }
+
+        .badge {
+            background: #f1f5f9; /* Slate 100 */
+            color: var(--color-secondary);
+            padding: 4px 10px;
+            border-radius: 99px; /* Pill */
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+        }
+
+        .badge.me {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        /* Action Icon (Plus / Check) */
+        .action-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #94a3b8;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .time-slot:hover .action-icon-wrapper {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .time-slot.joined .action-icon-wrapper {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            color: var(--color-secondary);
+            font-weight: 500;
+            padding: 40px;
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 16px 12px; }
+            .time-slot { padding: 14px; gap: 12px; }
+            .time-label { width: auto; min-width: 70px; }
+            .participants { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧗 Scheduler</h1>
+            <div class="date-display" id="currentDateDisplay">Loading date...</div>
+        </header>
+
+        <div class="user-section">
+            <input type="text" id="username" placeholder="Enter your name to join" aria-label="Your Name">
+        </div>
+
+        <div class="tabs" id="dayTabs">
+            <!-- Tabs will be generated here -->
+        </div>
+
+        <div id="scheduleGrid" class="schedule-grid">
+            <div class="loading">Loading schedule...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, remove, set, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBp8U-OOhqAq8cduJY6drH2qaEz-RxRA84",
+            authDomain: "climb-d1596.firebaseapp.com",
+            databaseURL: "https://climb-d1596-default-rtdb.firebaseio.com",
+            projectId: "climb-d1596",
+            storageBucket: "climb-d1596.firebasestorage.app",
+            messagingSenderId: "137441301946",
+            appId: "1:137441301946:web:3eb8750fb851f0aaaf3983",
+            measurementId: "G-46JLS940NZ"
+        };
+
+        // Initialize Firebase
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+        } catch (e) {
+            console.error("Firebase init error. Did you update the config?", e);
+            document.querySelector('.loading').textContent = "Error: Please update Firebase config in code.";
+        }
+
+        // --- STATE & UTILS ---
+        let currentSelectedDateStr = '';
+        let currentListenerRef = null;
+
+        const getUserId = () => {
+            let id = localStorage.getItem('climb_user_id');
+            if (!id) {
+                id = 'user_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('climb_user_id', id);
+            }
+            return id;
+        };
+
+        const getDateString = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const getDayName = (date) => {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return days[date.getDay()];
+        };
+
+        const formatDateDisplay = (dateStr) => {
+            const [y, m, d] = dateStr.split('-');
+            const date = new Date(y, m - 1, d);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString(undefined, options);
+        };
+
+        // --- DOM ELEMENTS ---
+        const currentDateDisplay = document.getElementById('currentDateDisplay');
+        const usernameInput = document.getElementById('username');
+        const scheduleGrid = document.getElementById('scheduleGrid');
+        const dayTabs = document.getElementById('dayTabs');
+        
+        // --- INITIALIZATION ---
+        const userId = getUserId();
+        
+        // Load saved name
+        const savedName = localStorage.getItem('climb_username');
+        if (savedName) usernameInput.value = savedName;
+
+        // --- TABS LOGIC ---
+        function initTabs() {
+            const today = new Date();
+            const daysToShow = 3; // Today + 2 days
+
+            dayTabs.innerHTML = '';
+            
+            for (let i = 0; i < daysToShow; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const dateStr = getDateString(date);
+                
+                // Format: Sat Jan 10
+                const tabLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn';
+                btn.textContent = tabLabel;
+
+                if (i === 0) {
+                    btn.classList.add('active');
+                    currentSelectedDateStr = dateStr;
+                }
+                
+                btn.onclick = () => switchDate(dateStr, btn);
+                dayTabs.appendChild(btn);
+            }
+            
+            // Initial Load
+            loadScheduleForDate(currentSelectedDateStr);
+        }
+
+        function switchDate(dateStr, btn) {
+            // Update UI
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            currentSelectedDateStr = dateStr;
+            loadScheduleForDate(dateStr);
+        }
+
+        // --- TIME SLOTS ---
+        function generateTimeSlots(dateStr) {
+            // Determine day of week
+            const [y, m, d] = dateStr.split('-');
+            const date = new Date(y, m - 1, d);
+            const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+            const startHour = isWeekend ? 13 : 17; // Weekend starts 1p, Weekday starts 5p
+            const endHour = isWeekend ? 17 : 21;   // Weekend ends 5p, Weekday ends 9p
+            
+            // Note: If you want weekdays to still be 1p-9p, logic holds.
+            // If you wanted weekdays to be different, change startHour above.
+            // Requirement was: "for sat/sun, only show times from 1-5p"
+            // implying weekdays keep the previous logic (which was 1p-9p).
+
+            const slots = [];
+            for (let i = startHour; i <= endHour; i++) {
+                const hour = i < 10 ? `0${i}` : i;
+                slots.push(`${hour}:00`);
+            }
+            return slots;
+        }
+
+        // --- FIREBASE & RENDER LOGIC ---
+        function loadScheduleForDate(dateStr) {
+            currentDateDisplay.textContent = formatDateDisplay(dateStr);
+            scheduleGrid.innerHTML = '<div class="loading">Loading schedule...</div>';
+
+            // Remove previous listener if exists
+            if (currentListenerRef) {
+                off(currentListenerRef);
+            }
+
+            currentListenerRef = ref(db, `schedules/${dateStr}`);
+            onValue(currentListenerRef, (snapshot) => {
+                const data = snapshot.val();
+                renderSchedule(data || {}, dateStr);
+            }, (error) => {
+                console.error("Data fetch error:", error);
+                scheduleGrid.innerHTML = '<div class="loading">Error loading data.</div>';
+            });
+        }
+
+        function renderSchedule(scheduleData = {}, dateStr) {
+            scheduleGrid.innerHTML = ''; // Clear current
+
+            const timeSlots = generateTimeSlots(dateStr);
+
+            timeSlots.forEach(time => {
+                const slotData = scheduleData[time] || {};
+                const participants = Object.entries(slotData);
+                const isJoined = slotData.hasOwnProperty(userId);
+
+                const slotEl = document.createElement('div');
+                slotEl.className = `time-slot ${isJoined ? 'joined' : ''}`;
+                slotEl.dataset.time = time;
+                
+                // Time Label
+                const timeLabel = document.createElement('div');
+                timeLabel.className = 'time-label';
+                
+                // Format time to 12h for display
+                const [h, m] = time.split(':');
+                const hourInt = parseInt(h);
+                const ampm = hourInt >= 12 ? 'PM' : 'AM';
+                const displayHour = hourInt % 12 || 12;
+                timeLabel.textContent = `${displayHour}:${m} ${ampm}`;
+                
+                // Participants
+                const participantsEl = document.createElement('div');
+                participantsEl.className = 'participants';
+                
+                if (participants.length === 0) {
+                    const emptyText = document.createElement('span');
+                    emptyText.style.color = '#ccc';
+                    emptyText.style.fontSize = '0.9rem';
+                    emptyText.textContent = 'Click to join';
+                    participantsEl.appendChild(emptyText);
+                } else {
+                    participants.forEach(([pid, name]) => {
+                        const badge = document.createElement('div');
+                        badge.className = `badge ${pid === userId ? 'me' : ''}`;
+                        badge.textContent = name;
+                        participantsEl.appendChild(badge);
+                    });
+                }
+
+                // Action Icon
+                const actionIcon = document.createElement('div');
+                actionIcon.className = 'action-icon-wrapper';
+                actionIcon.innerHTML = isJoined ? '✓' : '+';
+
+                slotEl.appendChild(timeLabel);
+                slotEl.appendChild(participantsEl);
+                slotEl.appendChild(actionIcon);
+
+                // Click Handler
+                slotEl.addEventListener('click', () => handleSlotClick(time, isJoined));
+
+                scheduleGrid.appendChild(slotEl);
+            });
+        }
+
+        // --- INTERACTIONS ---
+        usernameInput.addEventListener('input', (e) => {
+            localStorage.setItem('climb_username', e.target.value);
+        });
+
+        function handleSlotClick(time, isCurrentlyJoined) {
+            const name = usernameInput.value.trim();
+            
+            if (!name) {
+                alert("Please enter your name first!");
+                usernameInput.focus();
+                return;
+            }
+
+            const slotRef = ref(db, `schedules/${currentSelectedDateStr}/${time}/${userId}`);
+
+            if (isCurrentlyJoined) {
+                // Leave
+                remove(slotRef);
+            } else {
+                // Join
+                // We save the name as the value
+                set(slotRef, name);
+            }
+        }
+
+        // Start App
+        initTabs();
+        
+    </script>
+</body>
+</html>
