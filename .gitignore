@@ -5,3 +5,9 @@ _drafts/~$Doc4.docx
 _drafts/Bio.docx
 _drafts/~$Bio.docx
 .DS_Store
+
+
+random/functions/
+random/.firebaserc
+random/.gitignore
+random/firebase.json
