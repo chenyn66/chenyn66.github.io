@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Climb Scheduler</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="../images/mstile-150x150.png">
     <style>
         /* --- Design System: Modern Minimalist (Inter-inspired) --- */
         :root {
@@ -67,6 +72,15 @@
         /* --- User Input --- */
         .user-section {
             margin-bottom: 24px;
+        }
+        
+        #enableNotifications {
+            display: none;
+            width: 100%;
+            margin-top: 12px;
+            background: var(--color-surface);
+            border: 2px dashed var(--color-accent);
+            color: var(--color-accent);
         }
 
         input#username {
@@ -241,6 +255,7 @@
 
         <div class="user-section">
             <input type="text" id="username" placeholder="Enter your name to join" aria-label="Your Name">
+            <button id="enableNotifications" class="tab-btn">🔔 Enable Notifications</button>
         </div>
 
         <div class="tabs" id="dayTabs">
@@ -256,6 +271,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, remove, set, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         // --- CONFIGURATION ---
         const firebaseConfig = {
@@ -270,14 +286,51 @@
         };
 
         // Initialize Firebase
-        let app, db;
+        let app, db, messaging;
         try {
             app = initializeApp(firebaseConfig);
             db = getDatabase(app);
+            messaging = getMessaging(app);
         } catch (e) {
             console.error("Firebase init error. Did you update the config?", e);
             document.querySelector('.loading').textContent = "Error: Please update Firebase config in code.";
         }
+
+        // --- PWA & NOTIFICATIONS ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then((reg) => console.log('SW registered:', reg.scope))
+                .catch((err) => console.error('SW register fail:', err));
+        }
+
+        const notifBtn = document.getElementById('enableNotifications');
+        if (Notification.permission === 'default') {
+            notifBtn.style.display = 'block';
+        }
+
+        notifBtn.onclick = async () => {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    notifBtn.style.display = 'none';
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await getToken(messaging, { serviceWorkerRegistration: registration });
+                    
+                    if (token) {
+                        console.log('FCM Token:', token);
+                        set(ref(db, `users/${userId}/fcmToken`), token);
+                        alert("Notifications enabled! You're all set.");
+                    }
+                }
+            } catch (err) {
+                console.error('Notification setup failed', err);
+            }
+        };
+
+        onMessage(messaging, (payload) => {
+            console.log('Foreground message:', payload);
+            alert(`New Notification: ${payload.notification.title}\n${payload.notification.body}`);
+        });
 
         // --- STATE & UTILS ---
         let currentSelectedDateStr = '';
